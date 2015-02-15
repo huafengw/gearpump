@@ -4,7 +4,6 @@ import sbt.Keys._
 import sbt._
 import sbtassembly.Plugin.AssemblyKeys._
 import sbtassembly.Plugin._
-import xerial.sbt.Pack._
 import xerial.sbt.Sonatype._
 
 import scala.collection.immutable.Map.WithDefault
@@ -118,14 +117,18 @@ object Build extends sbt.Build {
   val coreDependencies = Seq(
         libraryDependencies ++= Seq(
         "com.github.intel-hadoop" %% "gearpump-core" % gearPumpVersion % "provided",
+        "com.github.intel-hadoop" %% "gearpump-core" % gearPumpVersion % "test" classifier "tests",
         "com.github.intel-hadoop" %% "gearpump-streaming" % gearPumpVersion % "provided",
+        "com.github.intel-hadoop" %% "gearpump-streaming" % gearPumpVersion % "test" classifier "tests",
         "com.github.intel-hadoop" %% "gearpump-external-kafka" % gearPumpVersion % "provided",
-        "org.apache.hadoop" % "hadoop-common" % hadoopVersion,
+        "com.github.intel-hadoop" %% "gearpump-external-kafka" % gearPumpVersion % "test" classifier "tests",
+        "org.apache.hadoop" % "hadoop-common" % hadoopVersion % "provided",
         "org.apache.hadoop" % "hadoop-hdfs" % hadoopVersion,
         "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
         "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
         "org.scalacheck" %% "scalacheck" % scalaCheckVersion % "test",
-        "org.mockito" % "mockito-core" % mockitoVersion % "test"
+        "org.mockito" % "mockito-core" % mockitoVersion % "test",
+        ("org.apache.kafka" %% "kafka" % kafkaVersion classifier("test")) % "test"
       )
   )
 
@@ -137,7 +140,7 @@ object Build extends sbt.Build {
   lazy val root = Project(
     id = "gearpump-examples",
     base = file("."),
-    settings = commonSettings ++ coreDependencies
+    settings = commonSettings ++ coreDependencies ++ myAssemblySettings
   ) aggregate (wordcount, complexdag, sol, fsio, examples_kafka)
 
   lazy val examples_kafka = Project(
