@@ -31,6 +31,8 @@ import org.apache.hadoop.yarn.api.records._
 import org.apache.hadoop.yarn.client.api.YarnClient
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.hadoop.yarn.util.{Apps, Records}
+import org.apache.hadoop.io.Text
+import java.net.InetAddress
 import org.slf4j.Logger
 
 import scala.collection.JavaConversions._

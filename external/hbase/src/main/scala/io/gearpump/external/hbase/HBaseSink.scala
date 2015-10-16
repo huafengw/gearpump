@@ -18,25 +18,40 @@
 package io.gearpump.external.hbase
 
 import java.io.{IOException, ObjectInputStream, ObjectOutputStream}
+import java.security.PrivilegedExceptionAction
 
+import io.gearpump.cluster.UserConfig
 import io.gearpump.streaming.dsl.TypedDataSink
 import io.gearpump.streaming.sink.DataSink
 import io.gearpump.streaming.task.TaskContext
 import io.gearpump.Message
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.{TableName, HBaseConfiguration}
-import org.apache.hadoop.hbase.client.{ConnectionFactory, Put}
+import org.apache.hadoop.hbase.client.{HTable, ConnectionFactory, Put}
 import org.apache.hadoop.hbase.util.Bytes
+import org.apache.hadoop.hbase.client.Table
+import org.apache.hadoop.security.UserGroupInformation
 
-class HBaseSink(tableName: String, @transient var configuration: Configuration) extends DataSink{
-  lazy val connection = ConnectionFactory.createConnection(configuration)
-  lazy val table = connection.getTable(TableName.valueOf(tableName))
+class HBaseSink(userconfig: UserConfig, tableName: String) extends DataSink{
+  @transient lazy val configuration = HBaseConfiguration.create()
+
+  lazy val (connection, table) = {
+    val principal = userconfig.getString(HBaseSecurityUtil.PRINCIPAL_KEY).get
+    val keytab = userconfig.getString(HBaseSecurityUtil.KEYTAB_FILE_KEY).get
+    UserGroupInformation.setConfiguration(configuration)
+    UserGroupInformation.loginUserFromKeytab(principal, keytab)
+    val conn = ConnectionFactory.createConnection(configuration)
+    val table = conn.getTable(TableName.valueOf(tableName))
+    (conn, table)
+  }
+
+  //lazy val table = connection.getTable(TableName.valueOf(tableName))
 
   override def open(context: TaskContext): Unit = {}
 
-  def this(tableName: String) = {
-    this(tableName, HBaseConfiguration.create())
-  }
+//  def this(tableName: String) = {
+//    this(tableName, HBaseConfiguration.create())
+//  }
 
   def insert(put: Put): Unit = {
     table.put(put)
@@ -73,16 +88,6 @@ class HBaseSink(tableName: String, @transient var configuration: Configuration) 
     connection.close()
     table.close()
   }
-
-  private def writeObject(out: ObjectOutputStream): Unit = {
-    out.defaultWriteObject()
-    configuration.write(out)
-  }
-
-  private def readObject(in: ObjectInputStream): Unit = {
-    configuration = new Configuration(false)
-    configuration.readFields(in)
-  }
 }
 
 object HBaseSink {
@@ -92,10 +97,10 @@ object HBaseSink {
   val COLUMN_NAME = "hbase.table.column.name"
 
   def apply[T](tableName: String): HBaseSink with TypedDataSink[T] = {
-    new HBaseSink(tableName) with TypedDataSink[T]
+    new HBaseSink(UserConfig.empty, tableName) with TypedDataSink[T]
   }
 
   def apply[T](tableName: String, configuration: Configuration): HBaseSink with TypedDataSink[T] = {
-    new HBaseSink(tableName, configuration) with TypedDataSink[T]
+    new HBaseSink(UserConfig.empty, tableName) with TypedDataSink[T]
   }
 }
