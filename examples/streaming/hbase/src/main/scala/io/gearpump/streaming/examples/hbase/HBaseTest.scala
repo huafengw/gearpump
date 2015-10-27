@@ -1,15 +1,17 @@
 package io.gearpump.streaming.examples.hbase
 
+import java.io.File
+
 import akka.actor.ActorSystem
 import io.gearpump.cluster.UserConfig
 import io.gearpump.cluster.client.ClientContext
-import io.gearpump.cluster.main.{ArgumentsParser, ParseResult, CLIOption}
+import io.gearpump.cluster.main.{ArgumentsParser, CLIOption, ParseResult}
 import io.gearpump.external.hbase.{HBaseSecurityUtil, HBaseSink}
 import io.gearpump.partitioner.HashPartitioner
 import io.gearpump.streaming.sink.DataSinkProcessor
 import io.gearpump.streaming.{Processor, StreamApplication}
-import io.gearpump.util.{AkkaApp, Graph}
 import io.gearpump.util.Graph._
+import io.gearpump.util.{AkkaApp, FileUtils, Graph}
 
 object HBaseTest extends AkkaApp with ArgumentsParser {
   override val options: Array[(String, CLIOption[Any])] = Array(
@@ -26,9 +28,13 @@ object HBaseTest extends AkkaApp with ArgumentsParser {
 
     val principal = config.getString("principal")
     val keytab = config.getString("keytab")
+    val keytabFile = new File(keytab)
+    val keytabContent = FileUtils.readFileToByteArray(keytabFile)
+
     val appConfig = UserConfig.empty
-      .withString(HBaseSecurityUtil.KEYTAB_FILE_KEY, keytab)
       .withString(HBaseSecurityUtil.PRINCIPAL_KEY, principal)
+      .withBytes(HBaseSecurityUtil.KEYTAB_FILE_KEY, keytabContent)
+
     val split = Processor[Split](splitNum)
     val sink = new HBaseSink(appConfig, "gear")
     val sinkProcessor = DataSinkProcessor(sink, sinkNum)

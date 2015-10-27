@@ -17,7 +17,7 @@
  */
 package io.gearpump.external.hbase
 
-import java.io.{IOException, ObjectInputStream, ObjectOutputStream}
+import java.io.{File, IOException, ObjectInputStream, ObjectOutputStream}
 import java.security.PrivilegedExceptionAction
 
 import io.gearpump.cluster.UserConfig
@@ -25,6 +25,7 @@ import io.gearpump.streaming.dsl.TypedDataSink
 import io.gearpump.streaming.sink.DataSink
 import io.gearpump.streaming.task.TaskContext
 import io.gearpump.Message
+import io.gearpump.util.FileUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.{TableName, HBaseConfiguration}
 import org.apache.hadoop.hbase.client.{HTable, ConnectionFactory, Put}
@@ -37,9 +38,19 @@ class HBaseSink(userconfig: UserConfig, tableName: String) extends DataSink{
 
   lazy val (connection, table) = {
     val principal = userconfig.getString(HBaseSecurityUtil.PRINCIPAL_KEY).get
-    val keytab = userconfig.getString(HBaseSecurityUtil.KEYTAB_FILE_KEY).get
+    val keytabContent = userconfig.getBytes(HBaseSecurityUtil.KEYTAB_FILE_KEY).get
+
+    val keytabFile = File.createTempFile("login", ".keytab")
+    FileUtils.writeByteArrayToFile(keytabFile, keytabContent)
+    keytabFile.setExecutable(false)
+    keytabFile.setWritable(false)
+    keytabFile.setReadable(true, true)
+
     UserGroupInformation.setConfiguration(configuration)
-    UserGroupInformation.loginUserFromKeytab(principal, keytab)
+    UserGroupInformation.loginUserFromKeytab(principal, keytabFile.getAbsolutePath)
+
+    keytabFile.delete();
+
     val conn = ConnectionFactory.createConnection(configuration)
     val table = conn.getTable(TableName.valueOf(tableName))
     (conn, table)
