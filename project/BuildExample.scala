@@ -2,6 +2,7 @@ import sbt.Keys._
 import sbt._
 import Build._
 import sbtassembly.Plugin.AssemblyKeys._
+import sbtassembly.Plugin.{MergeStrategy, PathList}
 
 object BuildExample extends sbt.Build {
 
@@ -9,8 +10,41 @@ object BuildExample extends sbt.Build {
     id = "gearpump-examples",
     base = file("examples"),
     settings = commonSettings ++ noPublish
-  ) aggregate (wordcount, wordcountJava, complexdag, sol, fsio, examples_kafka,
+  ) aggregate (wordcount, wordcountJava, complexdag, sol, fsio, examples_kafka, iotdemo,
       distributedshell, stockcrawler, transport, examples_state, pagerank, distributeservice)
+
+  lazy val iotdemo = Project(
+    id = "gearpump-examples-iotdemo",
+    base = file("examples/iotdemo"),
+    settings = commonSettings ++ noPublish ++ myAssemblySettings ++
+      Seq(
+        libraryDependencies ++= Seq(
+          //"com.github.sarxos" %  "webcam-capture" % "0.3.10",
+          //"com.google.zxing" % "javase" % "2.1",
+          //"org.bytedeco" % "javacv" % "1.1",
+          "org.openimaj" % "core" % "1.3.1"
+            exclude("log4j", "log4j")
+            exclude("commons-lang", "commons-lang"),
+          "org.openimaj" % "faces" % "1.3.1",
+          //"org.openimaj" % "core-video" % "1.3.1",
+          "org.openimaj" % "core-video-capture" % "1.3.1"
+        ),
+        mergeStrategy in assembly := {
+          case PathList("com", "esotericsoftware", "minlog", xs @ _*)         => MergeStrategy.first
+          case PathList("org", "apache", "regexp", xs @ _*)         => MergeStrategy.first
+          case PathList("org", "apache", "commons", xs @ _*)         => MergeStrategy.first
+          case PathList("org", "w3c", "dom", xs @ _*)         => MergeStrategy.first
+          case PathList("org", "xmlpull", "v1", xs @ _*)         => MergeStrategy.first
+          case PathList("javax", "xml", xs @ _*)         => MergeStrategy.first
+          case x =>
+            val oldStrategy = (mergeStrategy in assembly).value
+            oldStrategy(x)
+        },
+        resolvers += "OpenIMAJ Maven Repo" at "http://maven.openimaj.org",
+        target in assembly := baseDirectory.value.getParentFile / "target" /
+          CrossVersion.binaryScalaVersion(scalaVersion.value)
+      )
+  ) dependsOn (streaming % "test->test; provided", daemon % "test->test; provided")
 
   lazy val wordcountJava = Project(
     id = "gearpump-examples-wordcountjava",
