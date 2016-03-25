@@ -1,22 +1,20 @@
 package io.gearpump.examples.iotdemo
 
 import java.io.{DataOutputStream, ByteArrayOutputStream}
-import java.util.concurrent.TimeUnit
+import javax.imageio.ImageIO
 
 import akka.actor.Actor
 import io.gearpump.cluster.{UserConfig, ExecutorContext}
 import io.gearpump.util.LogUtil
-import javax.imageio.ImageIO
 import org.openimaj.image.{ImageUtilities, MBFImage}
 import org.openimaj.image.colour.{RGBColour, Transforms}
 import org.openimaj.image.processing.face.detection.HaarCascadeDetector
-import org.openimaj.video.VideoDisplay
+import org.openimaj.video.{VideoDisplayListener, VideoDisplay}
 import org.openimaj.video.capture.VideoCapture
 import org.slf4j.Logger
 import CapturingExecutor._
 import scala.collection.JavaConversions._
 
-import scala.concurrent.duration.Duration
 
 class CapturingExecutor(executorContext: ExecutorContext, userConf: UserConfig) extends Actor {
   import executorContext._
@@ -25,20 +23,13 @@ class CapturingExecutor(executorContext: ExecutorContext, userConf: UserConfig) 
   private val LOG: Logger = LogUtil.getLogger(getClass, executor = executorId, app = appId)
   private val faceDetector = new HaarCascadeDetector()
   private val video = new VideoCapture(320, 240)
-
   private val display = VideoDisplay.createVideoDisplay(video)
   private val out = new ByteArrayOutputStream()
   private val dataOut = new DataOutputStream(out)
+  //private val duration = FiniteDuration(1000 / video.getFPS.toInt, TimeUnit.MILLISECONDS)
 
-  LOG.info(s"CapturingExecutor started!")
-
-  override def preStart() = {
-    context.system.scheduler.scheduleOnce(Duration(100, TimeUnit.MILLISECONDS))(self ! CaptureImage)
-  }
-
-  override def receive: Receive = {
-    case CaptureImage =>
-      val frame = video.getNextFrame
+  display.addVideoListener(new VideoDisplayListener[MBFImage] {
+    override def beforeUpdate(frame: MBFImage): Unit = {
       val faces = faceDetector.detectFaces(Transforms.calculateIntensity(frame))
       faces.foreach(face => frame.drawShape(face.getBounds, RGBColour.RED))
       if (faces.size() > 0) {
@@ -48,7 +39,18 @@ class CapturingExecutor(executorContext: ExecutorContext, userConf: UserConfig) 
 //        remote ! bytes
 //        out.reset()
       }
-      context.system.scheduler.scheduleOnce(Duration(100, TimeUnit.MILLISECONDS))(self ! CaptureImage)
+    }
+
+    override def afterUpdate(videoDisplay: VideoDisplay[MBFImage]): Unit = {}
+  })
+
+  LOG.info(s"CapturingExecutor started! FPS: ${video.getFPS}")
+
+  override def preStart() = {
+  }
+
+  override def receive: Receive = {
+    case CaptureImage =>
   }
 
   override def postStop = {

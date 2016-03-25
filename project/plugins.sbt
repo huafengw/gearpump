@@ -8,9 +8,9 @@ addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.11.2")
 
 addSbtPlugin("io.gearpump.sbt" % "sbt-pack" % "0.7.6")
 
-addSbtPlugin("de.johoop" % "jacoco4sbt" % "2.1.6")
+addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.2")
 
-addSbtPlugin("com.gilt" % "sbt-dependency-graph-sugar" % "0.7.4")
+addSbtPlugin("de.johoop" % "jacoco4sbt" % "2.1.6")
 
 addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "0.2.1")
 

@@ -19,16 +19,21 @@ object BuildExample extends sbt.Build {
     settings = commonSettings ++ noPublish ++ myAssemblySettings ++
       Seq(
         libraryDependencies ++= Seq(
-          //"com.github.sarxos" %  "webcam-capture" % "0.3.10",
-          //"com.google.zxing" % "javase" % "2.1",
-          //"org.bytedeco" % "javacv" % "1.1",
-          "org.openimaj" % "core" % "1.3.1"
-            exclude("log4j", "log4j")
-            exclude("commons-lang", "commons-lang"),
           "org.openimaj" % "faces" % "1.3.1",
-          //"org.openimaj" % "core-video" % "1.3.1",
           "org.openimaj" % "core-video-capture" % "1.3.1"
-        ),
+        ).map(_.exclude("log4j", "log4j")).map(_.exclude("commons-lang", "commons-lang"))
+          .map(_.excludeAll(ExclusionRule(organization = "org.apache.ant")))
+          .map(_.excludeAll(ExclusionRule(organization = "org.bouncycastle")))
+          .map(_.excludeAll(ExclusionRule(organization = "bouncycastle")))
+          .map(_.excludeAll(ExclusionRule(organization = "org.apache.xmlgraphics")))
+          .map(_.excludeAll(ExclusionRule(organization = "org.apache.poi")))
+          .map(_.exclude("com.aetrion.flickr", "flickrapi"))
+          .map(_.exclude("com.google.android.tools", "dx"))
+          .map(_.exclude("xuggle", "xuggle-xuggler-lgpl"))
+          .map(_.exclude("net.sf.jasperreports", "jasperreports"))
+          .map(_.exclude("net.sf.saxon", "saxon9"))
+          .map(_.exclude("eclipse", "jdtcore"))
+        ,
         mergeStrategy in assembly := {
           case PathList("com", "esotericsoftware", "minlog", xs @ _*)         => MergeStrategy.first
           case PathList("org", "apache", "regexp", xs @ _*)         => MergeStrategy.first
@@ -44,7 +49,7 @@ object BuildExample extends sbt.Build {
         target in assembly := baseDirectory.value.getParentFile / "target" /
           CrossVersion.binaryScalaVersion(scalaVersion.value)
       )
-  ) dependsOn (streaming % "test->test; provided", daemon % "test->test; provided")
+  ) dependsOn (streaming % "test->test; provided")
 
   lazy val wordcountJava = Project(
     id = "gearpump-examples-wordcountjava",

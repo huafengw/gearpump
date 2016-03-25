@@ -56,7 +56,7 @@ object Build extends sbt.Build {
       ++ Pack.projects.toList).toSeq
 
 
-  val commonSettings = Seq(jacoco.settings:_*) ++ sonatypeSettings  ++ net.virtualvoid.sbt.graph.Plugin.graphSettings ++
+  val commonSettings = Seq(jacoco.settings:_*) ++ sonatypeSettings ++
     Seq(
         resolvers ++= Seq(
           "patriknw at bintray" at "http://dl.bintray.com/patriknw/maven",
