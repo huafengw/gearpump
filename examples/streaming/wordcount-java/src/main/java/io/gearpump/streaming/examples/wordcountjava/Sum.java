@@ -18,6 +18,7 @@
 
 package io.gearpump.streaming.examples.wordcountjava;
 
+import com.typesafe.config.Config;
 import io.gearpump.Message;
 import io.gearpump.cluster.UserConfig;
 import io.gearpump.streaming.javaapi.Task;
@@ -34,6 +35,9 @@ public class Sum  extends Task {
 
   public Sum(TaskContext taskContext, UserConfig userConf) {
     super(taskContext, userConf);
+    Config systemConfig = taskContext.system().settings().config();
+    LOG.info("we got firstKey from UserConfig: " + userConf.getString("firstKey").get());
+    LOG.info("we got config from system Config:" + systemConfig.getString("tap.key1"));
   }
 
   @Override
