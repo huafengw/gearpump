@@ -8,6 +8,8 @@ import io.gearpump.streaming.{Processor, StreamApplication}
 import io.gearpump.util.Graph.Node
 import io.gearpump.util.{AkkaApp, Graph}
 
+//io.gearpump.examples.iotdemo.Analyze
+
 object Analyze extends AkkaApp with ArgumentsParser  {
 
   override def main(akkaConf: Analyze.Config, args: Array[String]): Unit = {

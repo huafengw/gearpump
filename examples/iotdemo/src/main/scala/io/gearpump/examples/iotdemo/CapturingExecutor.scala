@@ -15,11 +15,10 @@ import org.slf4j.Logger
 import CapturingExecutor._
 import scala.collection.JavaConversions._
 
-
 class CapturingExecutor(executorContext: ExecutorContext, userConf: UserConfig) extends Actor {
   import executorContext._
   implicit val dispatcher = context.system.dispatcher
-  //private val remote = context.actorSelection(userConf.getString(REMOTE_ACTOR).get)
+  private val remote = context.actorSelection(userConf.getString(REMOTE_ACTOR).get)
   private val LOG: Logger = LogUtil.getLogger(getClass, executor = executorId, app = appId)
   private val faceDetector = new HaarCascadeDetector()
   private val video = new VideoCapture(320, 240)
@@ -31,13 +30,13 @@ class CapturingExecutor(executorContext: ExecutorContext, userConf: UserConfig) 
   display.addVideoListener(new VideoDisplayListener[MBFImage] {
     override def beforeUpdate(frame: MBFImage): Unit = {
       val faces = faceDetector.detectFaces(Transforms.calculateIntensity(frame))
-      faces.foreach(face => frame.drawShape(face.getBounds, RGBColour.RED))
       if (faces.size() > 0) {
-//        val image = ImageUtilities.createBufferedImageForDisplay(frame)
-//        ImageIO.write(image, "png", dataOut)
-//        val bytes = out.toByteArray
-//        remote ! bytes
-//        out.reset()
+        val image = ImageUtilities.createBufferedImageForDisplay(frame)
+        ImageIO.write(image, "png", dataOut)
+        val bytes = out.toByteArray
+        remote ! bytes
+        out.reset()
+        faces.foreach(face => frame.drawShape(face.getBounds, RGBColour.RED))
       }
     }
 

@@ -11,7 +11,7 @@ import org.slf4j.Logger
 class ImageSource(taskContext: TaskContext, conf: UserConfig) extends Task(taskContext, conf) {
   taskContext.system.actorOf(Props(classOf[InnerActor], self), "receiver")
 
-  override def onNext(msg : Message) : Unit = {
+  override def onNext(msg: Message) : Unit = {
     taskContext.output(msg)
   }
 }
