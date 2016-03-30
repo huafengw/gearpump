@@ -1,37 +1,38 @@
 package io.gearpump.examples.iotdemo
 
 import java.io.{DataInputStream, ByteArrayInputStream}
-import javax.imageio.ImageIO
 
-//import com.google.zxing.{MultiFormatReader, BinaryBitmap}
-//import com.google.zxing.client.j2se.BufferedImageLuminanceSource
-//import com.google.zxing.common.HybridBinarizer
+import io.gearpump.examples.iotdemo.AnalyzeTask.FrameWrapper
+
 import org.openimaj.image.{DisplayUtilities, ImageUtilities, MBFImage}
 import io.gearpump.Message
 import io.gearpump.cluster.UserConfig
 import io.gearpump.streaming.task.{Task, TaskContext}
 
 class AnalyzeTask(taskContext: TaskContext, conf: UserConfig) extends Task(taskContext, conf) {
-  val frame = DisplayUtilities.makeFrame("Analyze")
+  //val frame = DisplayUtilities.makeFrame("Analyze")
+  //java.awt.EventQueue.invokeLater(new FrameWrapper(this))
+  val frame = new CaptruingFrame(this)
+  frame.setVisible(true)
 
-  override def onNext(msg: Message) : Unit = {
+  override def onNext(msg: Message): Unit = {
     val in = new ByteArrayInputStream(msg.msg.asInstanceOf[Array[Byte]])
     val data = new DataInputStream(in)
     val image = ImageUtilities.readMBF(data)
-    DisplayUtilities.display(image, frame)
-//    val source = new BufferedImageLuminanceSource(image)
-//    val bitmap = new BinaryBitmap(new HybridBinarizer(source))
-//
-//    try {
-//      val result = new MultiFormatReader().decode(bitmap)
-//      if (result != null) {
-//        LOG.info(s"Decode result: $result")
-//      }
-//    } catch {
-//      case ex: Throwable =>
-//        //
-//    }
+    //DisplayUtilities.display(image, frame)
 
     data.close()
+  }
+
+  override def onStop(): Unit = {
+
+  }
+}
+
+object AnalyzeTask {
+  class FrameWrapper(analyzeTask: AnalyzeTask) extends Runnable {
+    override def run(): Unit = {
+      new CaptruingFrame(analyzeTask).setVisible(true)
+    }
   }
 }
