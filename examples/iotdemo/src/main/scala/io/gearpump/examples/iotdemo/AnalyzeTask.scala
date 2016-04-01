@@ -10,7 +10,6 @@ import io.gearpump.cluster.UserConfig
 import io.gearpump.streaming.task.{Task, TaskContext}
 
 class AnalyzeTask(taskContext: TaskContext, conf: UserConfig) extends Task(taskContext, conf) {
-  //val frame = DisplayUtilities.makeFrame("Analyze")
   //java.awt.EventQueue.invokeLater(new FrameWrapper(this))
   val frame = new CaptruingFrame(this)
   frame.setVisible(true)
@@ -19,13 +18,12 @@ class AnalyzeTask(taskContext: TaskContext, conf: UserConfig) extends Task(taskC
     val in = new ByteArrayInputStream(msg.msg.asInstanceOf[Array[Byte]])
     val data = new DataInputStream(in)
     val image = ImageUtilities.readMBF(data)
-    //DisplayUtilities.display(image, frame)
-
+    frame.remoteImageArrived(image)
     data.close()
   }
 
   override def onStop(): Unit = {
-
+    frame.dispose()
   }
 }
 

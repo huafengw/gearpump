@@ -8,6 +8,7 @@ import org.slf4j.Logger
 
 
 //io.gearpump.examples.iotdemo.Capturing -workers 2 -remote
+
 object Capturing extends AkkaApp with ArgumentsParser {
   private val LOG: Logger = LogUtil.getLogger(getClass)
 

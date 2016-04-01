@@ -6,30 +6,80 @@
 
 package io.gearpump.examples.iotdemo;
 
+import org.apache.commons.vfs2.FileSystemException;
+import org.openimaj.data.dataset.GroupedDataset;
+import org.openimaj.data.dataset.ListDataset;
+import org.openimaj.data.dataset.VFSGroupDataset;
+import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.image.DisplayUtilities;
+import org.openimaj.image.FImage;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.MBFImage;
+import org.openimaj.image.colour.RGBColour;
+import org.openimaj.image.colour.Transforms;
+import org.openimaj.image.processing.face.detection.DetectedFace;
+import org.openimaj.image.processing.face.detection.FaceDetector;
+import org.openimaj.image.processing.face.detection.HaarCascadeDetector;
+import org.openimaj.image.processing.face.recognition.FaceRecognitionEngine;
+import org.openimaj.ml.annotation.ScoredAnnotation;
+import org.openimaj.tools.faces.recognition.options.RecognitionStrategy;
+import org.openimaj.util.pair.IndependentPair;
 import org.openimaj.video.VideoDisplay;
+import org.openimaj.video.VideoDisplayListener;
 import org.openimaj.video.capture.VideoCapture;
 import org.openimaj.video.capture.VideoCaptureException;
 
 import java.awt.image.BufferedImage;
+import java.lang.reflect.Field;
+import java.net.URL;
+import java.util.List;
 
 /**
  *
  * @author huafengw
  */
 public class CaptruingFrame extends javax.swing.JFrame {
-  private AnalyzeTask analyzeTask;
   private VideoCapture videoCapture;
-  private VideoDisplay videoDisplay;
+  private float threshold = 4f;
+  private VideoDisplay<MBFImage> videoDisplay;
+  private String currentUserToFind;
+  private RecognitionStrategy strategy = RecognitionStrategy.CLMFeature_KNN;
+
+  private FaceRecognitionEngine<? extends DetectedFace, String> engine;
+  private FaceDetector<? extends DetectedFace, FImage> faceDetector;
 
   /** Creates new form CaptruingFrame */
-  public CaptruingFrame(AnalyzeTask analyzeTask) throws VideoCaptureException {
+  public CaptruingFrame(AnalyzeTask analyzeTask) throws VideoCaptureException, FileSystemException {
     initComponents();
-    this.analyzeTask = analyzeTask;
     this.videoCapture = new VideoCapture(320, 240);
-    this.videoDisplay = VideoDisplay.createVideoDisplay(this.videoCapture, this.capturingPanle);
+    this.videoDisplay = getVideoDisplay(this.videoCapture);
+
+    try
+    {
+      // We look for a field called "threshold" in the strategy and set
+      // the threshold
+      // to the value in the options. If the field doesn't exist, we'll
+      // ignore it.
+      final Field f = this.strategy.getClass().getDeclaredField("threshold");
+      f.setAccessible(true);
+      f.setFloat(this.strategy, this.threshold);
+    } catch (final NoSuchFieldException | SecurityException e)
+    {
+      System.out.println("WARNING: No threshold field to set in " + this.strategy + ".");
+    } catch (final IllegalArgumentException | IllegalAccessException e)
+    {
+      e.printStackTrace();
+    }
+
+    this.engine = strategy.getOptions().createRecognitionEngine();
+    this.faceDetector = engine.getDetector();
+
+    URL url = this.getClass().getClassLoader().getResource("att_faces.zip");
+    VFSGroupDataset<FImage> dataset =
+      new VFSGroupDataset<>("zip:" + url.getPath(), ImageUtilities.FIMAGE_READER);
+    GroupedRandomSplitter<String, FImage> splits = new GroupedRandomSplitter<>(dataset, 5, 0, 5);
+    GroupedDataset<String, ListDataset<FImage>, FImage> training = splits.getTrainingDataset();
+    engine.train(training);
   }
 
   /** This method is called from within the constructor to
@@ -169,38 +219,62 @@ public class CaptruingFrame extends javax.swing.JFrame {
   }// </editor-fold>
 
   private void capture_buttonActionPerformed(java.awt.event.ActionEvent evt) {
-    MBFImage image = this.videoCapture.getCurrentFrame();
-    BufferedImage bufferedImage = ImageUtilities.createBufferedImageForDisplay(image);
-    this.videoCapture.stopCapture();
-    DisplayUtilities.ImageComponent c;
-    if (detectionPanel.getComponentCount() > 0 && detectionPanel.getComponent(0) instanceof DisplayUtilities.ImageComponent) {
-      c = (DisplayUtilities.ImageComponent)detectionPanel.getComponent(0);
-      c.setImage(bufferedImage);
-      c.setOriginalImage(image);
+    FImage image = this.videoDisplay.getVideo().getCurrentFrame().flatten();
+    List<? extends DetectedFace> faces = faceDetector.detectFaces(image);
+    if (faces.size() == 1) {
+      String userName = this.userName.getText();
+      if (userName == null || userName.equals("")) {
+        this.warning_label.setText("User name is not provided");
+      } else {
+        this.currentUserToFind = userName;
+        this.engine.train(userName, image);
+      }
     } else {
-      detectionPanel.removeAll();
-      c = new DisplayUtilities.ImageComponent(bufferedImage);
-      c.setOriginalImage(image);
-      this.detectionPanel.add(c);
+      this.warning_label.setText("Face detection failed, please try again.");
     }
-    c.setVisible(true);
+  }
+
+  public void remoteImageArrived(MBFImage image) {
+    if (currentUserToFind != null && !currentUserToFind.equals("")) {
+      List<? extends IndependentPair<? extends DetectedFace, ScoredAnnotation<String>>> results = engine.recogniseBest(image.flatten());
+      if(results.size() > 0 && results.get(0).secondObject() != null) {
+        String bestPerson = results.get(0).secondObject().annotation;
+        if (bestPerson.equals(currentUserToFind)) {
+          BufferedImage bufferedImage = ImageUtilities.createBufferedImageForDisplay(image);
+          DisplayUtilities.ImageComponent imageComponent;
+          if (detectionPanel.getComponentCount() > 0 && detectionPanel.getComponent(0) instanceof DisplayUtilities.ImageComponent) {
+            imageComponent = (DisplayUtilities.ImageComponent) detectionPanel.getComponent(0);
+            imageComponent.setImage(bufferedImage);
+            imageComponent.setOriginalImage(image);
+          } else {
+            detectionPanel.removeAll();
+            imageComponent = new DisplayUtilities.ImageComponent(bufferedImage);
+            imageComponent.setOriginalImage(image);
+            this.detectionPanel.add(imageComponent);
+            imageComponent.setVisible(true);
+          }
+        }
+      }
+    }
   }
 
   private void restart_buttonActionPerformed(java.awt.event.ActionEvent evt) {
     this.videoCapture.close();
     this.videoDisplay.close();
-    this.capturingPanle.removeAll();
-    try {
-      this.videoCapture = new VideoCapture(320, 240);
-    } catch (VideoCaptureException e) {
-      e.printStackTrace();
-    }
-    this.videoDisplay = VideoDisplay.createVideoDisplay(this.videoCapture, this.capturingPanle);
-
-    if (detectionPanel.getComponentCount() > 0 && detectionPanel.getComponent(0) instanceof DisplayUtilities.ImageComponent) {
-      DisplayUtilities.ImageComponent c = (DisplayUtilities.ImageComponent)detectionPanel.getComponent(0);
-      c.setVisible(false);
-    }
+//    this.currentUserToFind = null;
+//    this.userName.setText("");
+//    this.capturingPanle.removeAll();
+//    try {
+//      this.videoCapture = new VideoCapture(320, 240);
+//    } catch (VideoCaptureException e) {
+//      e.printStackTrace();
+//    }
+//    this.videoDisplay = getVideoDisplay(this.videoCapture);
+//
+//    if (detectionPanel.getComponentCount() > 0 && detectionPanel.getComponent(0) instanceof DisplayUtilities.ImageComponent) {
+//      DisplayUtilities.ImageComponent c = (DisplayUtilities.ImageComponent)detectionPanel.getComponent(0);
+//      c.setVisible(false);
+//    }
   }
 
   private void formWindowClosed(java.awt.event.WindowEvent evt) {
@@ -221,5 +295,22 @@ public class CaptruingFrame extends javax.swing.JFrame {
   private javax.swing.JLabel warning_label;
   // End of variables declaration
 
+  private VideoDisplay<MBFImage> getVideoDisplay(VideoCapture capture) {
+    VideoDisplay<MBFImage> display = VideoDisplay.createVideoDisplay(capture, this.capturingPanle);
+    display.addVideoListener(
+      new VideoDisplayListener<MBFImage>() {
+        FaceDetector<DetectedFace,FImage> _faceDetector = new HaarCascadeDetector();
+        public void beforeUpdate(MBFImage frame) {
+          List<DetectedFace> faces = _faceDetector.detectFaces(Transforms.calculateIntensity(frame));
+          for( DetectedFace face : faces ) {
+            frame.drawShape(face.getBounds(), RGBColour.RED);
+          }
+        }
+
+        public void afterUpdate( VideoDisplay<MBFImage> display ) {
+        }
+      });
+    return display;
+  }
 }
 

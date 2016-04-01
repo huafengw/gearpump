@@ -25,7 +25,6 @@ class CapturingExecutor(executorContext: ExecutorContext, userConf: UserConfig) 
   private val display = VideoDisplay.createVideoDisplay(video)
   private val out = new ByteArrayOutputStream()
   private val dataOut = new DataOutputStream(out)
-  //private val duration = FiniteDuration(1000 / video.getFPS.toInt, TimeUnit.MILLISECONDS)
 
   display.addVideoListener(new VideoDisplayListener[MBFImage] {
     override def beforeUpdate(frame: MBFImage): Unit = {
