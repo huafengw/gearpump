@@ -7,10 +7,6 @@
 package io.gearpump.examples.iotdemo;
 
 import org.apache.commons.vfs2.FileSystemException;
-import org.openimaj.data.dataset.GroupedDataset;
-import org.openimaj.data.dataset.ListDataset;
-import org.openimaj.data.dataset.VFSGroupDataset;
-import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.image.DisplayUtilities;
 import org.openimaj.image.FImage;
 import org.openimaj.image.ImageUtilities;
@@ -31,16 +27,21 @@ import org.openimaj.video.capture.VideoCaptureException;
 
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Field;
-import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
  *
  * @author huafengw
  */
-public class CaptruingFrame extends javax.swing.JFrame {
-  private VideoCapture videoCapture;
+public class CapturingFrame extends javax.swing.JFrame {
   private float threshold = 4f;
+  private final int maxTrainingFrames = 5;
+  private int remainFramesToTrain;
+  private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+  private VideoCapture videoCapture;
   private VideoDisplay<MBFImage> videoDisplay;
   private String currentUserToFind;
   private RecognitionStrategy strategy = RecognitionStrategy.CLMFeature_KNN;
@@ -48,11 +49,11 @@ public class CaptruingFrame extends javax.swing.JFrame {
   private FaceRecognitionEngine<? extends DetectedFace, String> engine;
   private FaceDetector<? extends DetectedFace, FImage> faceDetector;
 
-  /** Creates new form CaptruingFrame */
-  public CaptruingFrame(AnalyzeTask analyzeTask) throws VideoCaptureException, FileSystemException {
+  /** Creates new form CapturingFrame */
+  public CapturingFrame(AnalyzeTask analyzeTask) throws VideoCaptureException, FileSystemException {
     initComponents();
-    this.videoCapture = new VideoCapture(320, 240);
-    this.videoDisplay = getVideoDisplay(this.videoCapture);
+//    this.videoCapture = Util.getVideoCapture();
+//    this.videoDisplay = getVideoDisplay(this.videoCapture);
 
     try
     {
@@ -74,12 +75,12 @@ public class CaptruingFrame extends javax.swing.JFrame {
     this.engine = strategy.getOptions().createRecognitionEngine();
     this.faceDetector = engine.getDetector();
 
-    URL url = this.getClass().getClassLoader().getResource("att_faces.zip");
-    VFSGroupDataset<FImage> dataset =
-      new VFSGroupDataset<>("zip:" + url.getPath(), ImageUtilities.FIMAGE_READER);
-    GroupedRandomSplitter<String, FImage> splits = new GroupedRandomSplitter<>(dataset, 5, 0, 5);
-    GroupedDataset<String, ListDataset<FImage>, FImage> training = splits.getTrainingDataset();
-    engine.train(training);
+//    URL url = this.getClass().getClassLoader().getResource("att_faces.zip");
+//    VFSGroupDataset<FImage> dataset =
+//      new VFSGroupDataset<>("zip:" + url.getPath(), ImageUtilities.FIMAGE_READER);
+//    GroupedRandomSplitter<String, FImage> splits = new GroupedRandomSplitter<>(dataset, 5, 0, 5);
+//    GroupedDataset<String, ListDataset<FImage>, FImage> training = splits.getTrainingDataset();
+//    engine.train(training);
   }
 
   /** This method is called from within the constructor to
@@ -101,6 +102,10 @@ public class CaptruingFrame extends javax.swing.JFrame {
     jPanel1 = new javax.swing.JPanel();
     capturingPanle = new javax.swing.JPanel();
     detectionPanel = new javax.swing.JPanel();
+    jLabel4 = new javax.swing.JLabel();
+    jLabel5 = new javax.swing.JLabel();
+    detectedLocation = new javax.swing.JLabel();
+    detectedTime = new javax.swing.JLabel();
 
     setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
     addWindowListener(new java.awt.event.WindowAdapter() {
@@ -108,22 +113,24 @@ public class CaptruingFrame extends javax.swing.JFrame {
         formWindowClosed(evt);
       }
     });
-    jLabel1.setText("Captrued Video");
+    jLabel1.setText("Captured Video");
 
-    jLabel2.setText("Search Result");
+    jLabel2.setText("Detection Result");
 
-    jLabel3.setText("Name");
+    jLabel3.setText("Name:");
 
     userName.setToolTipText("");
+    userName.setEnabled(false);
 
-    capture_button.setText("Capture");
+    capture_button.setText("Task a photo");
     capture_button.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         capture_buttonActionPerformed(evt);
       }
     });
+    capture_button.setEnabled(false);
 
-    restart_button.setText("Restart");
+    restart_button.setText("Start capturing");
     restart_button.addActionListener(new java.awt.event.ActionListener() {
       public void actionPerformed(java.awt.event.ActionEvent evt) {
         restart_buttonActionPerformed(evt);
@@ -156,12 +163,16 @@ public class CaptruingFrame extends javax.swing.JFrame {
     detectionPanel.setLayout(detectionPanelLayout);
     detectionPanelLayout.setHorizontalGroup(
       detectionPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-        .addGap(0, 0, Short.MAX_VALUE)
+        .addGap(0, 320, Short.MAX_VALUE)
     );
     detectionPanelLayout.setVerticalGroup(
       detectionPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
         .addGap(0, 240, Short.MAX_VALUE)
     );
+
+    jLabel4.setText("Detected Location:");
+
+    jLabel5.setText("Detected Time:");
 
     javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
     getContentPane().setLayout(layout);
@@ -181,12 +192,17 @@ public class CaptruingFrame extends javax.swing.JFrame {
               .addGap(18, 18, 18)
               .addComponent(userName))
             .addComponent(jLabel1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE))
-          .addGap(29, 29, 29)
+          .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 79, Short.MAX_VALUE)
           .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+              .addComponent(detectionPanel, javax.swing.GroupLayout.PREFERRED_SIZE, 320, javax.swing.GroupLayout.PREFERRED_SIZE)
               .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 136, javax.swing.GroupLayout.PREFERRED_SIZE)
-              .addGap(0, 184, Short.MAX_VALUE))
-            .addComponent(detectionPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+              .addGroup(layout.createSequentialGroup()
+                .addComponent(jLabel4)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(detectedLocation, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+              .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 116, javax.swing.GroupLayout.PREFERRED_SIZE))
+            .addComponent(detectedTime, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 194, javax.swing.GroupLayout.PREFERRED_SIZE))
           .addContainerGap())
     );
     layout.setVerticalGroup(
@@ -203,11 +219,15 @@ public class CaptruingFrame extends javax.swing.JFrame {
           .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
           .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
             .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-            .addComponent(userName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+            .addComponent(userName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addComponent(detectedLocation, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
           .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
           .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
             .addComponent(capture_button)
-            .addComponent(restart_button))
+            .addComponent(restart_button)
+            .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
+            .addComponent(detectedTime, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE))
           .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
           .addComponent(warning_label, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
           .addContainerGap(20, Short.MAX_VALUE))
@@ -226,15 +246,25 @@ public class CaptruingFrame extends javax.swing.JFrame {
       if (userName == null || userName.equals("")) {
         this.warning_label.setText("User name is not provided");
       } else {
-        this.currentUserToFind = userName;
+        this.userName.setEnabled(false);
         this.engine.train(userName, image);
+        this.remainFramesToTrain -= 1;
+        if (remainFramesToTrain <= 0) {
+          this.videoCapture.stopCapture();
+          this.videoDisplay.close();
+          this.capture_button.setEnabled(false);
+          this.currentUserToFind = userName;
+          this.warning_label.setText("Looking for " + this.currentUserToFind);
+        } else {
+          this.warning_label.setText(this.remainFramesToTrain + " photos left");
+        }
       }
     } else {
       this.warning_label.setText("Face detection failed, please try again.");
     }
   }
 
-  public void remoteImageArrived(MBFImage image) {
+  public void remoteImageArrived(MBFImage image, String host, Long timeStamp) {
     if (currentUserToFind != null && !currentUserToFind.equals("")) {
       List<? extends IndependentPair<? extends DetectedFace, ScoredAnnotation<String>>> results = engine.recogniseBest(image.flatten());
       if(results.size() > 0 && results.get(0).secondObject() != null) {
@@ -251,30 +281,32 @@ public class CaptruingFrame extends javax.swing.JFrame {
             imageComponent = new DisplayUtilities.ImageComponent(bufferedImage);
             imageComponent.setOriginalImage(image);
             this.detectionPanel.add(imageComponent);
-            imageComponent.setVisible(true);
           }
+          imageComponent.setVisible(true);
+          this.detectedLocation.setText(host);
+          this.detectedTime.setText(dateFormat.format(new Date(timeStamp)));
         }
       }
     }
   }
 
   private void restart_buttonActionPerformed(java.awt.event.ActionEvent evt) {
-    this.videoCapture.close();
-    this.videoDisplay.close();
-//    this.currentUserToFind = null;
-//    this.userName.setText("");
-//    this.capturingPanle.removeAll();
-//    try {
-//      this.videoCapture = new VideoCapture(320, 240);
-//    } catch (VideoCaptureException e) {
-//      e.printStackTrace();
-//    }
-//    this.videoDisplay = getVideoDisplay(this.videoCapture);
-//
-//    if (detectionPanel.getComponentCount() > 0 && detectionPanel.getComponent(0) instanceof DisplayUtilities.ImageComponent) {
-//      DisplayUtilities.ImageComponent c = (DisplayUtilities.ImageComponent)detectionPanel.getComponent(0);
-//      c.setVisible(false);
-//    }
+    this.userName.setEnabled(true);
+    this.capture_button.setEnabled(true);
+    this.remainFramesToTrain = this.maxTrainingFrames;
+    this.currentUserToFind = null;
+    this.userName.setText("");
+    this.detectedLocation.setText("");
+    this.detectedTime.setText("");
+    this.capturingPanle.removeAll();
+    this.videoCapture = Util.getVideoCapture();
+    this.videoDisplay = getVideoDisplay(this.videoCapture);
+
+    if (detectionPanel.getComponentCount() > 0 && detectionPanel.getComponent(0) instanceof DisplayUtilities.ImageComponent) {
+      DisplayUtilities.ImageComponent c = (DisplayUtilities.ImageComponent)detectionPanel.getComponent(0);
+      c.setVisible(false);
+    }
+    this.warning_label.setText("Please take " + this.remainFramesToTrain + " photos.");
   }
 
   private void formWindowClosed(java.awt.event.WindowEvent evt) {
@@ -285,10 +317,14 @@ public class CaptruingFrame extends javax.swing.JFrame {
   // Variables declaration - do not modify
   private javax.swing.JButton capture_button;
   private javax.swing.JPanel capturingPanle;
+  private javax.swing.JLabel detectedLocation;
+  private javax.swing.JLabel detectedTime;
   private javax.swing.JPanel detectionPanel;
   private javax.swing.JLabel jLabel1;
   private javax.swing.JLabel jLabel2;
   private javax.swing.JLabel jLabel3;
+  private javax.swing.JLabel jLabel4;
+  private javax.swing.JLabel jLabel5;
   private javax.swing.JPanel jPanel1;
   private javax.swing.JButton restart_button;
   private javax.swing.JTextField userName;

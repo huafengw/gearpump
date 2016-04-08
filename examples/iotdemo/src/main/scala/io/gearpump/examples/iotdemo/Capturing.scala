@@ -6,15 +6,14 @@ import io.gearpump.cluster.main.{CLIOption, ArgumentsParser}
 import io.gearpump.util.{LogUtil, AkkaApp}
 import org.slf4j.Logger
 
-
-//io.gearpump.examples.iotdemo.Capturing -workers 2 -remote
+//io.gearpump.examples.iotdemo.Capturing -workers 0 -remote
 
 object Capturing extends AkkaApp with ArgumentsParser {
   private val LOG: Logger = LogUtil.getLogger(getClass)
 
   override val options: Array[(String, CLIOption[Any])] = Array(
     "workers" -> CLIOption[String]("<the worker list to deploy CapturingExecutor>", required = true),
-    "remote" -> CLIOption[String]("<teh remote actor path>", required = false)
+    "remote" -> CLIOption[String]("<teh remote actor path>", required = true)
   )
 
   override def main(akkaConf: Config, args: Array[String]): Unit = {

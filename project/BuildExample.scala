@@ -25,7 +25,8 @@ object BuildExample extends sbt.Build {
           "org.openimaj" % "FaceTools" % "1.3.1",
           "com.twelvemonkeys.imageio" % "imageio-core" % "3.0-rc5",
           "com.twelvemonkeys.common" % "common-lang" % "3.0-rc5",
-          "org.openimaj" % "core-video-capture" % "1.3.1"
+          "org.openimaj" % "core-video-capture" % "1.3.1",
+          "com.seaglasslookandfeel" % "seaglasslookandfeel" % "0.2"
         ).map(_.exclude("log4j", "log4j")).map(_.exclude("commons-lang", "commons-lang"))
           .map(_.excludeAll(ExclusionRule(organization = "org.apache.xmlgraphics")))
           .map(_.excludeAll(ExclusionRule(organization = "org.apache.ant")))

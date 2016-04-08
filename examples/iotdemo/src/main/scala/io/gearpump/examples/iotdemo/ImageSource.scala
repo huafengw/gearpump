@@ -1,7 +1,7 @@
 package io.gearpump.examples.iotdemo
 
 import akka.actor.{Props, ActorRef, Actor}
-import io.gearpump.Message
+import io.gearpump.{TimeStamp, Message}
 import io.gearpump.cluster.UserConfig
 import io.gearpump.examples.iotdemo.ImageSource.InnerActor
 import io.gearpump.streaming.task.{StartTime, Task, TaskContext}
@@ -16,14 +16,17 @@ class ImageSource(taskContext: TaskContext, conf: UserConfig) extends Task(taskC
   }
 }
 
+case class RemoteImage(bytes: Array[Byte], hostName: String, timeStamp: TimeStamp)
+
 object ImageSource {
+
   class InnerActor(parent: ActorRef) extends Actor {
     private val LOG: Logger = LogUtil.getLogger(getClass)
     LOG.info(s"Actor path: ${ActorUtil.getFullPath(context.system, self.path)}")
 
     override def receive: Receive = {
-      case bytes: Array[Byte] =>
-        parent.tell(Message(bytes, System.currentTimeMillis()), parent)
+      case image: RemoteImage =>
+        parent.tell(Message(image, System.currentTimeMillis()), parent)
     }
   }
 }

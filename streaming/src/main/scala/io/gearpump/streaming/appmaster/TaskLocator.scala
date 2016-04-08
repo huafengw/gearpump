@@ -37,6 +37,26 @@ class TaskLocator(appName: String, config: Config) {
     taskLocalities.getOrElse(taskId, NonLocality)
   }
 
+  /*
+The task resource requests format:
+gearpump {
+  streaming {
+    localities {
+      app1: {
+        workerId: [
+          TaskId(0,0), TaskId(0,1)
+        ]
+      }
+      app2: {
+        workerId: [
+          TaskId(1,0), TaskId(1,1)
+        ]
+      }
+    }
+  }
+}
+ */
+
   private def loadTaskLocalities(config: Config) : Map[TaskId, Locality] = {
     import Constants.GEARPUMP_STREAMING_LOCALITIES
     Try(config.getConfig(s"$GEARPUMP_STREAMING_LOCALITIES.$appName")).map {appConfig =>

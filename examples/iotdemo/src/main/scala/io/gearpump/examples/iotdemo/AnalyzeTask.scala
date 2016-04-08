@@ -1,6 +1,8 @@
 package io.gearpump.examples.iotdemo
 
+import java.awt.Font
 import java.io.{DataInputStream, ByteArrayInputStream}
+import javax.swing.UIManager
 
 import io.gearpump.examples.iotdemo.AnalyzeTask.FrameWrapper
 
@@ -11,14 +13,17 @@ import io.gearpump.streaming.task.{Task, TaskContext}
 
 class AnalyzeTask(taskContext: TaskContext, conf: UserConfig) extends Task(taskContext, conf) {
   //java.awt.EventQueue.invokeLater(new FrameWrapper(this))
-  val frame = new CaptruingFrame(this)
+  UIManager.setLookAndFeel("com.seaglasslookandfeel.SeaGlassLookAndFeel")
+  UIManager.getLookAndFeelDefaults().put("defaultFont", new Font("Microsoft Yahei",Font.PLAIN,13))
+  val frame = new CapturingFrame(this)
   frame.setVisible(true)
 
   override def onNext(msg: Message): Unit = {
-    val in = new ByteArrayInputStream(msg.msg.asInstanceOf[Array[Byte]])
+    val remoteImage = msg.msg.asInstanceOf[RemoteImage]
+    val in = new ByteArrayInputStream(remoteImage.bytes)
     val data = new DataInputStream(in)
     val image = ImageUtilities.readMBF(data)
-    frame.remoteImageArrived(image)
+    frame.remoteImageArrived(image, remoteImage.hostName, remoteImage.timeStamp)
     data.close()
   }
 
@@ -30,7 +35,7 @@ class AnalyzeTask(taskContext: TaskContext, conf: UserConfig) extends Task(taskC
 object AnalyzeTask {
   class FrameWrapper(analyzeTask: AnalyzeTask) extends Runnable {
     override def run(): Unit = {
-      new CaptruingFrame(analyzeTask).setVisible(true)
+      new CapturingFrame(analyzeTask).setVisible(true)
     }
   }
 }
