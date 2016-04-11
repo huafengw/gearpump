@@ -7,7 +7,7 @@ import io.gearpump.cluster.ClientToMaster.ShutdownApplication
 import io.gearpump.cluster.appmaster.ExecutorSystemScheduler.{StartExecutorSystems, ExecutorSystemJvmConfig, StartExecutorSystemTimeout, ExecutorSystemStarted}
 import io.gearpump.cluster.scheduler.{Relaxation, Resource, ResourceRequest}
 import io.gearpump.cluster.{ExecutorContext, ApplicationMaster, AppDescription, AppMasterContext}
-import io.gearpump.util.{Util, LogUtil, Constants}
+import io.gearpump.util.{Util => GUtil, LogUtil, Constants}
 import org.slf4j.Logger
 
 class CapturingAppMaster(appContext : AppMasterContext, app : AppDescription) extends ApplicationMaster  {
@@ -43,7 +43,7 @@ class CapturingAppMaster(appContext : AppMasterContext, app : AppDescription) ex
 
   private def getExecutorJvmConfig: ExecutorSystemJvmConfig = {
     val config: Config = app.clusterConfig
-    val jvmSetting = Util.resolveJvmSetting(config.withFallback(context.system.settings.config)).executor
+    val jvmSetting = GUtil.resolveJvmSetting(config.withFallback(context.system.settings.config)).executor
     ExecutorSystemJvmConfig(jvmSetting.classPath, jvmSetting.vmargs,
       appJar, username, config)
   }

@@ -37,7 +37,7 @@ import java.util.List;
  * @author huafengw
  */
 public class CapturingFrame extends javax.swing.JFrame {
-  private float threshold = 4f;
+  private float threshold = 5f;
   private final int maxTrainingFrames = 5;
   private int remainFramesToTrain;
   private DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
