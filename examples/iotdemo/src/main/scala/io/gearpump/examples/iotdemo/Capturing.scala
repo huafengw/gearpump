@@ -13,7 +13,8 @@ object Capturing extends AkkaApp with ArgumentsParser {
 
   override val options: Array[(String, CLIOption[Any])] = Array(
     "workers" -> CLIOption[String]("<the worker list to deploy CapturingExecutor>", required = true),
-    "remote" -> CLIOption[String]("<teh remote actor path>", required = true)
+    "remote" -> CLIOption[String]("<the remote actor path>", required = true),
+    "cameraId" -> CLIOption[String]("<the camera id to use>", required = false, defaultValue = Some("ASHU"))
   )
 
   override def main(akkaConf: Config, args: Array[String]): Unit = {
@@ -21,8 +22,10 @@ object Capturing extends AkkaApp with ArgumentsParser {
     val context = ClientContext(akkaConf)
     val workerList = config.getString("workers")
     val remote = config.getString("remote")
+    val camera = config.getString("cameraId")
     val userConfig = UserConfig.empty.withString(CapturingAppMaster.WORKER_LIST, workerList)
       .withString(CapturingExecutor.REMOTE_ACTOR, remote)
+      .withString(CapturingExecutor.CAMERA, camera)
     val appId = context.submit(Application[CapturingAppMaster]("CapturingApp", userConfig))
     context.close()
     LOG.info(s"Capturing Application started with appId $appId !")

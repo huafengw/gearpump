@@ -24,7 +24,7 @@ class CapturingExecutor(executorContext: ExecutorContext, userConf: UserConfig) 
   private val hostName = InetAddress.getLocalHost().getHostName()
   private val remote = context.actorSelection(userConf.getString(REMOTE_ACTOR).get)
   private val LOG: Logger = LogUtil.getLogger(getClass, executor = executorId, app = appId)
-  private val video = Util.getVideoCapture
+  private val video = Util.getVideoCapture(userConf.getString(CapturingExecutor.CAMERA).get)
   private val display = VideoDisplay.createVideoDisplay(video)
   private val out = new ByteArrayOutputStream()
   private val dataOut = new DataOutputStream(out)
@@ -57,4 +57,5 @@ class CapturingExecutor(executorContext: ExecutorContext, userConf: UserConfig) 
 
 object CapturingExecutor {
   final val REMOTE_ACTOR = "remote_actor"
+  final val CAMERA = "camera"
 }
